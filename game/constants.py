@@ -6,6 +6,7 @@ class Constants:
 
     CARDS_IN_DECK = 30
     CARDS_IN_DRAFT = 60
+    DRAFT_OPTIONS = 3
 
     INITIAL_HAND_SIZE = 4
     MAX_CARDS_IN_HAND = 8

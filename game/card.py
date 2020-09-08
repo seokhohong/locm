@@ -1,9 +1,9 @@
 from game.ability import Ability, ability_set_from_str
-
+from copy import copy
 
 def card_from_strarray(data):
     abilities = data[6]
-    instance_id = int(data[0])
+    card_id = int(data[0])
     cost = int(data[3])
     attack = int(data[4])
     defense = int(data[5])
@@ -11,22 +11,37 @@ def card_from_strarray(data):
     ohc = int(data[8])
     card_draw = int(data[9])
     if data[2] == 'creature':
-        return Creature(instance_id, data[1], data[2], cost, attack, defense, abilities, mhc, ohc, card_draw, data[10])
+        return Creature(card_id, data[1], data[2], cost, attack, defense, abilities, mhc, ohc, card_draw, data[10])
     else:
-        return Item(instance_id, data[1], data[2], cost, attack, defense, mhc, ohc, card_draw, data[10])
+        return Item(card_id, data[1], data[2], cost, attack, defense, abilities, mhc, ohc, card_draw, data[10])
+
 
 
 class Card:
-    def __init__(self, instance_id, name, card_type, cost,
+    _instance_tracker = -1
+
+    @classmethod
+    def _create_instance(cls):
+        Card._instance_tracker += 1
+        return Card._instance_tracker
+
+    def __init__(self, card_id, name, card_type, cost, abilities,
                  my_health_change, opp_health_change, card_draw, desc):
-        self._instance_id = instance_id
+        self._card_id = card_id
+        self._instance_id = Card._create_instance()
         self._name = name
         self._card_type = card_type
         self._cost = cost
         self._my_health_change = my_health_change
         self._opp_health_change = opp_health_change
+        self._abilities = ability_set_from_str(abilities)
         self._card_draw = card_draw
         self._desc = desc
+
+    def reinstantiate(self):
+        a_copy = copy(self)
+        a_copy._instance_id = Card._create_instance()
+        return a_copy
 
     def name(self):
         return self._name
@@ -34,14 +49,17 @@ class Card:
     def cost(self):
         return self._cost
 
+    def card_id(self):
+        return self._card_id
+
     def instance_id(self):
         return self._instance_id
 
     def is_item(self):
-        return self._card_type > 0
+        return 'item' in self._card_type
 
     def is_creature(self):
-        return self._card_type == 0
+        return self._card_type == 'creature'
 
     def my_health_change(self):
         return self._my_health_change
@@ -52,11 +70,16 @@ class Card:
     def card_draw(self):
         return self._card_draw
 
+    def get_abilities(self):
+        return copy(self._abilities)
+
+    def __repr__(self):
+        return self.name()
 
 class Item(Card):
-    def __init__(self, instance_id, name, card_type, cost, attack_mod, def_mod, mhc, ohc, card_draw, desc):
-        super(Item, self).__init__(instance_id, name, card_type, cost, mhc, ohc, card_draw, desc)
-        assert (card_type != 'creature')
+    def __init__(self, card_id, name, card_type, cost, attack_mod, def_mod, abilities, mhc, ohc, card_draw, desc):
+        super(Item, self).__init__(card_id, name, card_type, cost, abilities, mhc, ohc, card_draw, desc)
+        assert ('item' in card_type)
         self._attack_mod = attack_mod
         self._def_mod = def_mod
 
@@ -67,23 +90,26 @@ class Item(Card):
         return self._def_mod
 
     def is_green_item(self):
-        return self._card_type == 1
+        return self._card_type == 'itemGreen'
 
     def is_red_item(self):
-        return self._card_type == 2
+        return self._card_type == 'itemRed'
 
     def is_blue_item(self):
-        return self._card_type == 3
+        return self._card_type == 'itemBlue'
+
+    def affects_abil(self, abil: Ability):
+        return self._abilities.has_abil(abil)
 
 
 class Creature(Card):
-    def __init__(self, instance_id, name, card_type,
+    def __init__(self, card_id, name, card_type,
                  cost, attack, defense, abilities, mhc, ohc, card_draw, desc):
-        super(Creature, self).__init__(instance_id, name, card_type, cost, mhc, ohc, card_draw, desc)
+        super(Creature, self).__init__(card_id, name, card_type, cost, abilities, mhc, ohc, card_draw, desc)
         assert (card_type == 'creature')
         self._attack = attack
         self._defense = defense
-        self._abilities = ability_set_from_str(abilities)
+
         self._can_attack = self.has_abil(Ability.BREAKTHROUGH)
         self._has_attacked = False
 
@@ -105,11 +131,9 @@ class Creature(Card):
     def is_dead(self):
         return self._defense <= 0
 
-    def get_abilities(self):
-        return self._abilities
-
     def can_attack(self):
         return not self._has_attacked
 
     def has_abil(self, abil: Ability):
         return self._abilities.has_abil(abil)
+

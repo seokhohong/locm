@@ -1,11 +1,11 @@
 from enum import Enum
 class Ability(Enum):
-    BREAKTHROUGH = 1
-    CHARGE = 2
-    DRAIN = 3
-    GUARD = 4
-    LETHAL = 5
-    WARD = 6
+    BREAKTHROUGH = 'B'
+    CHARGE = 'C'
+    DRAIN = 'D'
+    GUARD = 'G'
+    LETHAL = 'L'
+    WARD = 'W'
 
 def ability_set_from_str(strdata):
     return AbilitySet(strdata[0] == 'B', strdata[1] == 'C', strdata[2] == 'D', strdata[3] == 'G', strdata[4] == 'L', strdata[5] == 'W')
@@ -48,7 +48,8 @@ class AbilitySet:
         return self.has_abil(Ability.LETHAL)
 
     def __str__(self):
-        return self.__repr__()
-
-    def __repr__(self):
-        return self.strdata
+        abils = []
+        for abil in Ability:
+            if self.has_abil(abil):
+                abils.append(abil.value)
+        return ''.join(abils)
